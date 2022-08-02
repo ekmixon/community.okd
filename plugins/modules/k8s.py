@@ -337,8 +337,8 @@ class OKDRawModule(K8sAnsibleMixin):
     def validate_spec(self):
         return dict(
             fail_on_error=dict(type='bool'),
-            version=dict(),
-            strict=dict(type='bool', default=True)
+            version={},
+            strict=dict(type='bool', default=True),
         )
 
     @property
@@ -394,7 +394,9 @@ class OKDRawModule(K8sAnsibleMixin):
             matches the value in desired
         """
         for i, item in enumerate(objects):
-            if item and all([desired.get(key, True) == item.get(key, False) for key in keys]):
+            if item and all(
+                desired.get(key, True) == item.get(key, False) for key in keys
+            ):
                 return i
 
     def resolve_imagestream_trigger_annotation(self, existing, definition):
@@ -430,9 +432,13 @@ class OKDRawModule(K8sAnsibleMixin):
                         existing_index = new_index = int(parsed['index'])
                     else:
                         existing_index = new_index = None
-                    if existing_index is not None and new_index is not None:
-                        if existing_index < len(existing_containers) and new_index < len(new_containers):
-                            set_from_fields(definition, path + [new_index, 'image'], get_from_fields(existing, path + [existing_index, 'image']))
+                    if (
+                        existing_index is not None
+                        and new_index is not None
+                        and existing_index < len(existing_containers)
+                        and new_index < len(new_containers)
+                    ):
+                        set_from_fields(definition, path + [new_index, 'image'], get_from_fields(existing, path + [existing_index, 'image']))
         return definition
 
     def resolve_imagestream_triggers(self, existing, definition):
@@ -455,16 +461,22 @@ class OKDRawModule(K8sAnsibleMixin):
                                                     [x.get('imageChangeParams') for x in existing_triggers],
                                                     ['containerNames'])
                     if existing_index is not None:
-                        existing_image = existing_triggers[existing_index].get('imageChangeParams', {}).get('lastTriggeredImage')
-                        if existing_image:
+                        if (
+                            existing_image := existing_triggers[existing_index]
+                            .get('imageChangeParams', {})
+                            .get('lastTriggeredImage')
+                        ):
                             definition['spec']['triggers'][i]['imageChangeParams']['lastTriggeredImage'] = existing_image
                         existing_from = existing_triggers[existing_index].get('imageChangeParams', {}).get('from', {})
                         new_from = trigger['imageChangeParams'].get('from', {})
                         existing_namespace = existing_from.get('namespace')
                         existing_name = existing_from.get('name', False)
                         new_name = new_from.get('name', True)
-                        add_namespace = existing_namespace and 'namespace' not in new_from.keys() and existing_name == new_name
-                        if add_namespace:
+                        if (
+                            add_namespace := existing_namespace
+                            and 'namespace' not in new_from.keys()
+                            and existing_name == new_name
+                        ):
                             definition['spec']['triggers'][i]['imageChangeParams']['from']['namespace'] = existing_from['namespace']
 
         return definition

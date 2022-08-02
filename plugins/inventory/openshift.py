@@ -157,7 +157,10 @@ class InventoryModule(K8sInventoryModule):
             obj = v1_route.get(namespace=namespace)
         except DynamicApiError as exc:
             self.display.debug(exc)
-            raise K8sInventoryException('Error fetching Routes list: %s' % format_dynamic_api_exc(exc))
+            raise K8sInventoryException(
+                f'Error fetching Routes list: {format_dynamic_api_exc(exc)}'
+            )
+
 
         namespace_group = 'namespace_{0}'.format(namespace)
         namespace_routes_group = '{0}_routes'.format(namespace_group)
@@ -169,7 +172,12 @@ class InventoryModule(K8sInventoryModule):
         self.inventory.add_child(namespace_group, namespace_routes_group)
         for route in obj.items:
             route_name = route.metadata.name
-            route_annotations = {} if not route.metadata.annotations else dict(route.metadata.annotations)
+            route_annotations = (
+                dict(route.metadata.annotations)
+                if route.metadata.annotations
+                else {}
+            )
+
 
             self.inventory.add_host(route_name)
 

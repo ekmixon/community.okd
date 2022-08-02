@@ -241,11 +241,7 @@ class OpenShiftAuthModule(AnsibleModule):
         self.con_host = self.params.get('host')
 
         # python-requests takes either a bool or a path to a ca file as the 'verify' param
-        if verify_ssl and ssl_ca_cert:
-            self.con_verify_ca = ssl_ca_cert  # path
-        else:
-            self.con_verify_ca = verify_ssl   # bool
-
+        self.con_verify_ca = ssl_ca_cert if verify_ssl and ssl_ca_cert else verify_ssl
         # Get needed info to access authorization APIs
         self.openshift_discover()
 
@@ -260,7 +256,7 @@ class OpenShiftAuthModule(AnsibleModule):
             )
         else:
             self.openshift_logout()
-            result = dict()
+            result = {}
 
         # return k8s_auth as well for backwards compatibility
         self.exit_json(changed=False, openshift_auth=result, k8s_auth=result)
@@ -301,9 +297,11 @@ class OpenShiftAuthModule(AnsibleModule):
                               reason=ret.reason, status_code=ret.status_code)
 
         # In here we have `code` and `state`, I think `code` is the important one
-        qwargs = {}
-        for k, v in parse_qs(urlparse(ret.headers['Location']).query).items():
-            qwargs[k] = v[0]
+        qwargs = {
+            k: v[0]
+            for k, v in parse_qs(urlparse(ret.headers['Location']).query).items()
+        }
+
         qwargs['grant_type'] = 'authorization_code'
 
         # Using authorization code given to us in the Location header of the previous request, request a token
@@ -345,9 +343,7 @@ class OpenShiftAuthModule(AnsibleModule):
         self.fail_json(msg=msg)
 
     def fail_request(self, msg, **kwargs):
-        req_info = {}
-        for k, v in kwargs.items():
-            req_info['req_' + k] = v
+        req_info = {f'req_{k}': v for k, v in kwargs.items()}
         self.fail_json(msg=msg, **req_info)
 
 

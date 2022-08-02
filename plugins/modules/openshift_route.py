@@ -528,14 +528,14 @@ class OpenShiftRoute(K8sAnsibleMixin):
         return route_spec
 
     def set_port(self, service, port_arg):
-        if port_arg:
-            return port_arg
-        for p in service.spec.ports:
-            if p.protocol == 'TCP':
-                if p.name is not None:
-                    return p.name
-                return p.targetPort
-        return None
+        return port_arg or next(
+            (
+                p.name if p.name is not None else p.targetPort
+                for p in service.spec.ports
+                if p.protocol == 'TCP'
+            ),
+            None,
+        )
 
 
 def wait_predicate(route):

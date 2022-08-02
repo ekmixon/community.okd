@@ -321,8 +321,6 @@ class OpenShiftProcess(K8sAnsibleMixin):
         for k, v in parameters.items():
             template = self.update_template_param(template, k, v)
 
-        result = {'changed': False}
-
         try:
             response = v1_processed_templates.create(body=template, namespace=namespace).to_dict()
         except DynamicApiError as exc:
@@ -331,7 +329,7 @@ class OpenShiftProcess(K8sAnsibleMixin):
         except Exception as exc:
             self.module.fail_json(msg="Server failed to render the Template: {0}".format(to_native(exc)),
                                   error='', status='', reason='')
-        result['message'] = ""
+        result = {'changed': False, 'message': ""}
         if "message" in response:
             result['message'] = response['message']
         result['resources'] = response['objects']
@@ -362,7 +360,7 @@ class OpenShiftProcess(K8sAnsibleMixin):
         try:
             with open(path, 'r') as f:
                 multiline = ''
-                for line in f.readlines():
+                for line in f:
                     line = line.strip()
                     if line.endswith('\\'):
                         multiline += ' '.join(line.rsplit('\\', 1))
